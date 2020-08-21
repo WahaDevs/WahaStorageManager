@@ -10,6 +10,8 @@ firebase_app = firebase_admin.initialize_app(cred, {
 
 db = firestore.client()
 col_ref = db.collection("cloud")
+number_of_scans = 0
+number_of_delete = 0
 
 for doc in col_ref.stream():
     doc_dict = doc.to_dict()
@@ -21,10 +23,17 @@ for doc in col_ref.stream():
         date_string = "2000-01-01 00:00:00"
 
     date = datetime.strptime(date_string, '%Y-%m-%d %H:%M:%S')
-    if abs((date - datetime.now()).days) > 14:
-        print(f'{filecode} is going to get deleted')
+    datedif = abs((date - datetime.now()).days)
+    if datedif > 14:
+        print(f'{filecode} was created {datedif} days ago, it is going to get deleted')
         bucket = storage.bucket()
         try:
             bucket.get_blob(path).delete()
         finally:
             col_ref.document(filecode).delete()
+            number_of_delete += 1
+    else:
+        print(f'{filecode} was created {datedif} days ago, it is safe')
+    number_of_scans += 1
+
+print(f'[{datetime.now()}] Analysed finished, {number_of_scans} document(s) scanned, {number_of_delete} deleted')
